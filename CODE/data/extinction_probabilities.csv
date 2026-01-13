@@ -1,0 +1,9 @@
+scenario,seed_in,p_ext,n
+dry,Seed in I1,0.49158,50000
+dry,Seed in I2,0.20708,50000
+medium,Seed in I1,0.5021,50000
+medium,Seed in I2,0.21254,50000
+seasonal,Seed in I1,0.50296,50000
+seasonal,Seed in I2,0.21324,50000
+wet,Seed in I1,0.51786,50000
+wet,Seed in I2,0.2242,50000
