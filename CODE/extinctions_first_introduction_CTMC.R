@@ -39,10 +39,10 @@ params <- list(
 # canonical scenario order and palette (lock legend/colors everywhere)
 SCEN_LEVELS <- c("dry","medium","seasonal","wet")
 PAL_SCEN <- c(
-  "dry"      = "#D55E00",   # rouge/orange
-  "medium"   = "#009E73",   # vert
-  "seasonal" = "#0072B2",   # bleu
-  "wet"      = "#CC79A7"    # violet
+  "dry"      = "#D55E00",  
+  "medium"   = "#009E73",   
+  "seasonal" = "#0072B2",   
+  "wet"      = "#CC79A7"    
 )
 scale_scenario_colour <- function(...) {
   ggplot2::scale_colour_manual(values = PAL_SCEN, breaks = SCEN_LEVELS,
@@ -55,7 +55,7 @@ scale_scenario_fill <- function(...) {
 
 # Time horizon & sims
 t_final  <- 25
-n_sims   <- 10000                  # increase when ready (e.g., 2000+)
+n_sims   <- 50000                  # increase when ready (e.g., 2000+)
 scenarios <- SCEN_LEVELS       # use the canonical order
 
 # initializers (we'll seed one infected later)
@@ -233,8 +233,7 @@ res <- bind_rows(res_list) %>%
       ifelse(as.character(scenario) == "wel", "wet", as.character(scenario)),
       levels = SCEN_LEVELS
     ),
-    seed_in = factor(seed_in, levels = c("I1","I2"),
-                     labels = c("Seed in I1","Seed in I2"))
+    seed_in = factor(seed_in, levels = c("I1","I2"))
   )
 
 # Quick sanity: how many NA (no cross by t_final)?
@@ -265,9 +264,15 @@ p_base <- ggplot(dens_df,
 gb         <- ggplot_build(p_base)
 max_density <- max(gb$data[[1]]$density, na.rm = TRUE)*1.9
 
+seed_lab <- c(
+  I1 = "'Introduction in'~I[N]",
+  I2 = "'Introduction in'~I[S]"
+)
+
 # Now make the faceted plot and force the same y-limit in both panels
 p_tau <- p_base +
-  facet_wrap(~ seed_in, ncol = 1) +
+  facet_wrap(~ seed_in, ncol = 1,
+             labeller = as_labeller(seed_lab, label_parsed)) +
   scale_scenario_colour() + scale_scenario_fill() +
   labs(x = "First introduction time (days)", y = "Density") +
   coord_cartesian(ylim = c(0, max_density)) +
@@ -293,7 +298,8 @@ p_ext <- ggplot(ext_df, aes(x = scenario, y = p_ext, fill = scenario)) +
   geom_col(width = 0.6) +
   geom_text(aes(label = sprintf("%.1f%%", 100*p_ext)),
             vjust = -0.6, size = 3.5) +
-  facet_wrap(~ seed_in, nrow = 1) +
+  facet_wrap(~ seed_in, nrow = 1,
+                labeller = as_labeller(seed_lab, label_parsed)) +
   coord_cartesian(ylim = c(0, 1.05)) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
   scale_scenario_fill() +

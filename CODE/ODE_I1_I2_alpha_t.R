@@ -9,6 +9,8 @@ library(deSolve)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+setwd("C:/Users/cdjuk/OneDrive/Documents/GitHub/model-stressed-fish/CODE")
+
 
 # ---------------- 1) Parameters ----------------
 pars <- list(

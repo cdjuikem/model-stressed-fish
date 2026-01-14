@@ -181,4 +181,6 @@ p_violin <- ggplot(
 
 print(p_violin)
 
+# ---------------- 7) Save figure ----------------
+if (!dir.exists("fig")) dir.create("fig")
 ggsave("fig/violin_P_ext.pdf", p_violin, width = 9, height = 4, dpi = 300)
