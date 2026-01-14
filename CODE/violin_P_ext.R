@@ -1,7 +1,7 @@
 ## ============================================================
 ## Violin plots of extinction probability vs alpha
-## P_ext(alpha, i10, i20) = (u1_star(alpha))^i10 * (u2_star(alpha))^i20
-## Two seeding scenarios: seed in I1 only, seed in I2 only
+## P_ext(alpha, IN0, IS0) = (u1_star(alpha))^IN0 * (u2_star(alpha))^IS0
+## Two seeding scenarios: seed in IN only, seed in IS only
 ## ============================================================
 
 rm(list = ls())
@@ -12,12 +12,12 @@ library(ggplot2)
 ## --- Parameters (your values) -------------------------------
 Lambda  <- 10        # recruitment
 mu      <- 0.005     # natural death
-beta1   <- 0.00005   # transmission from I1
-beta2   <- 0.0001    # transmission from I2
-gamma1  <- 0.1       # recovery I1
-gamma2  <- 0.1       # recovery I2
-d1      <- 0.01      # disease death I1
-d2      <- 0.01      # disease death I2
+beta1   <- 0.00005   # transmission from IN
+beta2   <- 0.0001    # transmission from IS
+gamma1  <- 0.1       # recovery IN
+gamma2  <- 0.1       # recovery IS
+d1      <- 0.01      # disease death IN
+d2      <- 0.01      # disease death IS
 
 nu1 <- gamma1 + mu + d1
 nu2 <- gamma2 + mu + d2
@@ -96,37 +96,38 @@ print(u_star_tbl)
 # tu dois maintenant voir u1 ET u2 non-NA, ~ (0.79, 0.66), etc.
 
 ## --- Range of initial infected ------------------------------
-i10_max <- 20
-i20_max <- 20
+IN0_max <- 20
+IS0_max <- 20
 
-## 1) Seed in I1 only: i10 = 1..20, i20 = 0 --------------------
-df_I1 <- expand.grid(
+## 1) Seed in IN only: IN0 = 1..20, IS0 = 0 --------------------
+df_IN <- expand.grid(
   alpha = alpha_vals,
-  i10   = 1:i10_max   # >= 1
+  IN0   = 1:IN0_max   # >= 1
 ) %>%
   left_join(u_star_tbl, by = "alpha") %>%
   mutate(
-    i20  = 0,
-    Pext = (u1^i10) * (u2^i20),
-    seed = "Seed in I1"
-  )
+    IS0  = 0,
+    Pext = (u1^IN0) * (u2^IS0),
+    seed = "IN"
+    )
 
-## 2) Seed in I2 only: i20 = 1..20, i10 = 0 --------------------
-df_I2 <- expand.grid(
+## 2) Seed in IS only: IS0 = 1..20, IN0 = 0 --------------------
+df_IS <- expand.grid(
   alpha = alpha_vals,
-  i20   = 1:i20_max
+  IS0   = 1:IS0_max
 ) %>%
   left_join(u_star_tbl, by = "alpha") %>%
   mutate(
-    i10  = 0,
-    Pext = (u1^i10) * (u2^i20),
-    seed = "Seed in I2"
+    IN0  = 0,
+    Pext = (u1^IN0) * (u2^IS0),
+    seed = "IS"
   )
 
 ## Combine both scenarios --------------------------------------
-df_all <- bind_rows(df_I1, df_I2) %>%
+df_all <- bind_rows(df_IN, df_IS) %>%
   mutate(
-    seed = factor(seed, levels = c("Seed in I1", "Seed in I2")),
+    seed = factor(seed, levels = c("IN","IS")),
+   # seed = factor(seed, levels = c("Seed in IN", "Seed in IS")),
     # map alpha -> stress scenario, to reuse same colours as before
     scenario = case_when(
       alpha == 0.001 ~ "wet",
@@ -137,6 +138,11 @@ df_all <- bind_rows(df_I1, df_I2) %>%
     ),
     scenario = factor(scenario, levels = c("dry", "medium", "seasonal", "wet"))
   )
+
+seed_labels <- c(
+  IN = "'Introduction in '~I[N]",
+  IS = "'Introduction in '~I[S]"
+)
 
 ## --- Violin plot with colour by stress scenario --------------
 p_violin <- ggplot(
@@ -166,6 +172,10 @@ p_violin <- ggplot(
     y = expression(P[ext])
     # title = expression("Distribution of extinction probability" ~ P[ext] ~
     #                    " over initial conditions, for different " * alpha)
+  ) +
+  facet_wrap(
+    ~ seed, 
+    labeller = as_labeller(seed_labels, label_parsed)
   ) +
   theme_bw()
 

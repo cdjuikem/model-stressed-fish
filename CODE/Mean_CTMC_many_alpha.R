@@ -26,8 +26,8 @@ params_base <- list(
 init_state <- c(
   S1 = 300,
   S2 = 10,
-  I1 = 1,
-  I2 = 0,
+  IN = 1,
+  IS = 0,
   R  = 0
 )
 
@@ -35,7 +35,7 @@ t_final    <- 365
 dt_plot    <- 1        # pas de temps pour la moyenne
 times_grid <- seq(0, t_final, by = dt_plot)
 
-n_sims <- 50          # nombre de trajectoires par alpha
+n_sims <- 10          # nombre de trajectoires par alpha
 alpha_values <- c(0, 0.01, 0.02, 0.04)   # exemple
 
 ## ============================================================
@@ -46,36 +46,36 @@ transitions_stress <- list(
   c(S1 = +1),                        # naissance -> S1
   c(S1 = -1),                        # mort nat. S1
   c(S2 = -1),                        # mort nat. S2
-  c(I1 = -1),                        # mort nat. I1
-  c(I2 = -1),                        # mort nat. I2
+  c(IN = -1),                        # mort nat. IN
+  c(IS = -1),                        # mort nat. IS
   c(R  = -1),                        # mort nat. R
   c(S1 = -1, S2 = +1),               # stress S1 -> S2
-  c(S1 = -1, I1 = +1),               # infection S1 -> I1
-  c(S2 = -1, I2 = +1),               # infection S2 -> I2
-  c(I1 = -1, R  = +1),               # guérison I1
-  c(I2 = -1, R  = +1),               # guérison I2
-  c(I1 = -1),                        # décès maladie I1
-  c(I2 = -1)                         # décès maladie I2
+  c(S1 = -1, IN = +1),               # infection S1 -> IN
+  c(S2 = -1, IS = +1),               # infection S2 -> IS
+  c(IN = -1, R  = +1),               # guérison IN
+  c(IS = -1, R  = +1),               # guérison IS
+  c(IN = -1),                        # décès maladie IN
+  c(IS = -1)                         # décès maladie IS
 )
 
 lvrates_stress <- function(x, params, t) {
   with(as.list(c(x, params)), {
-    lambda_inf <- beta1 * I1 + beta2 * I2
+    lambda_inf <- beta1 * IN + beta2 * IS
     
     c(
       Lambda,
       mu * S1,
       mu * S2,
-      mu * I1,
-      mu * I2,
+      mu * IN,
+      mu * IS,
       mu * R,
       alpha * S1,        # ici alpha est CONSTANT pour l’instant
       lambda_inf * S1,
       lambda_inf * S2,
-      gamma1 * I1,
-      gamma2 * I2,
-      d1 * I1,
-      d2 * I2
+      gamma1 * IN,
+      gamma2 * IS,
+      d1 * IN,
+      d2 * IS
     )
   })
 }
@@ -92,12 +92,12 @@ simulate_one_traj_on_grid <- function(params_local) {
     params      = params_local,
     tf          = t_final
   )
-  sol <- as.data.frame(sol)   # colonnes: time, S1, S2, I1, I2, R
+  sol <- as.data.frame(sol)   # colonnes: time, S1, S2, IN, IS, R
   
   # Processus en escalier : pour chaque t_grid, on prend le dernier état connu
   nT <- length(times_grid)
   res <- matrix(NA, nrow = nT, ncol = 5)
-  colnames(res) <- c("S1","S2","I1","I2","R")
+  colnames(res) <- c("S1","S2","IN","IS","R")
   
   idx <- 1
   for (j in seq_len(nT)) {
@@ -106,15 +106,15 @@ simulate_one_traj_on_grid <- function(params_local) {
     while (idx < nrow(sol) && sol$time[idx + 1] <= tgj) {
       idx <- idx + 1
     }
-    res[j, ] <- as.numeric(sol[idx, c("S1","S2","I1","I2","R")])
+    res[j, ] <- as.numeric(sol[idx, c("S1","S2","IN","IS","R")])
   }
   
   df <- data.frame(
     time = times_grid,
     S1 = res[,"S1"],
     S2 = res[,"S2"],
-    I1 = res[,"I1"],
-    I2 = res[,"I2"],
+    IN = res[,"IN"],
+    IS = res[,"IS"],
     R  = res[,"R"]
   )
   df
@@ -130,11 +130,11 @@ run_mean_for_alpha <- function(alpha_val) {
   
   # matrice pour accumuler la somme
   sum_mat <- matrix(0, nrow = length(times_grid), ncol = 5)
-  colnames(sum_mat) <- c("S1","S2","I1","I2","R")
+  colnames(sum_mat) <- c("S1","S2","IN","IS","R")
   
   for (k in seq_len(n_sims)) {
     df <- simulate_one_traj_on_grid(params_local)
-    sum_mat <- sum_mat + as.matrix(df[, c("S1","S2","I1","I2","R")])
+    sum_mat <- sum_mat + as.matrix(df[, c("S1","S2","IN","IS","R")])
   }
   
   mean_mat <- sum_mat / n_sims
@@ -143,8 +143,8 @@ run_mean_for_alpha <- function(alpha_val) {
     time = times_grid,
     S1   = mean_mat[,"S1"],
     S2   = mean_mat[,"S2"],
-    I1   = mean_mat[,"I1"],
-    I2   = mean_mat[,"I2"],
+    IN   = mean_mat[,"IN"],
+    IS   = mean_mat[,"IS"],
     R    = mean_mat[,"R"],
     alpha = alpha_val
   )
@@ -181,12 +181,12 @@ stopCluster(cl)
 mean_all <- bind_rows(mean_list)
 
 ## ============================================================
-## 6. Plot : trajectoires moyennes pour S1, S2, I1, I2
+## 6. Plot : trajectoires moyennes pour S1, S2, IN, IS
 ## ============================================================
 
 mean_long <- mean_all %>%
   pivot_longer(
-    cols = c("I1","I2"),
+    cols = c("IN","IS"),
     names_to = "variable",
     values_to = "value"
   )
@@ -202,7 +202,7 @@ p_mean <- ggplot(mean_long,
     y = "Mean number of fish",
     colour = expression(alpha),
     title = ""
-    #title = "Mean CTMC trajectories for I1, I2\nfor different stress rates α"
+    #title = "Mean CTMC trajectories for IN, IS\nfor different stress rates α"
   ) +
   theme_bw()
 

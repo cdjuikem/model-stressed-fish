@@ -2,7 +2,7 @@
 # ODE with time-varying alpha(t) for 4 scenarios
 #   wet / medium / dry / seasonal
 #   Regime: R0_min > 1  (supercritical)
-#   We plot I1 (non-stressed infected) and I2 (stressed infected)
+#   We plot IN (non-stressed infected) and IS (stressed infected)
 # ============================================================
 
 rm(list = ls())
@@ -15,12 +15,12 @@ library(ggplot2)
 pars <- list(
   Lambda = 10,
   mu     = 0.005,
-  beta1  = 0.00005,
-  beta2  = 0.0001,
-  gamma1 = 0.10,
+  betaN  = 0.00005,
+  betaS  = 0.0001,
+  gammaN = 0.10,
   gamma2 = 0.1,
-  d1     = 0.01,
-  d2     = 0.01,
+  dN     = 0.01,
+  dS     = 0.01,
   # water-stress link
   alpha_max = 0.05,  # max stress rate (day^-1)
   Wcrit     = 6,
@@ -31,10 +31,10 @@ pars <- list(
 
 # Helper: R0(alpha) for the autonomous model
 R0_alpha <- function(alpha, p) {
-  nu1 <- p$gamma1 + p$mu + p$d1
-  nu2 <- p$gamma2 + p$mu + p$d2
+  nuN <- p$gammaN + p$mu + p$dN
+  nuS <- p$gamma2 + p$mu + p$dS
   p$Lambda / (alpha + p$mu) *
-    ( p$beta1/nu1 + alpha * p$beta2/(p$mu * nu2) )
+    ( p$betaN/nuN + alpha * p$betaS/(p$mu * nuS) )
 }
 
 alpha_min <- 0.01
@@ -47,7 +47,7 @@ cat("R0_min (alpha = alpha_min)      =", R0_min, "\n")
 cat("R0_max (alpha = alpha_max)      =", R0_max, "\n")
 
 # ---------------- 2) Initial conditions and time grid ----------------
-y0 <- c(S1 = pars$Lambda/pars$mu, S2 = 0, I1 = 1, I2 = 0, R = 0)
+y0 <- c(SN = pars$Lambda/pars$mu, SS = 0, IN = 1, IS = 0, R = 0)
 
 t_end <- 365*4
 times <- seq(0, t_end, by = 0.5)
@@ -73,15 +73,15 @@ alpha_of_t <- function(t, scen, p) {
 rhs <- function(t, y, p, scen) {
   with(as.list(c(y, p)), {
     a_t   <- alpha_of_t(t, scen, p)
-    lambda <- beta1 * I1 + beta2 * I2
+    lambda <- betaN * IN + betaS * IS
     
-    dS1 <- Lambda - a_t*S1 - lambda*S1 - mu*S1
-    dS2 <- a_t*S1   - lambda*S2 - mu*S2
-    dI1 <- lambda*S1 - (gamma1 + mu + d1)*I1
-    dI2 <- lambda*S2 - (gamma2 + mu + d2)*I2
-    dR  <- gamma1*I1 + gamma2*I2 - mu*R
+    dSN <- Lambda - a_t*SN - lambda*SN - mu*SN
+    dSS <- a_t*SN   - lambda*SS - mu*SS
+    dIN <- lambda*SN - (gammaN + mu + dN)*IN
+    dIS <- lambda*SS - (gamma2 + mu + dS)*IS
+    dR  <- gammaN*IN + gamma2*IS - mu*R
     
-    list(c(dS1, dS2, dI1, dI2, dR))
+    list(c(dSN, dSS, dIN, dIS, dR))
   })
 }
 
@@ -114,19 +114,19 @@ scenario_cols <- c(
 )
 
 
-# ---------------- 6) Plot I1 and I2 only ----------------
+# ---------------- 6) Plot IN and IS only ----------------
 long_I <- sol_all |>
-  select(time, I1, I2, scenario) |>
+  select(time, IN, IS, scenario) |>
   pivot_longer(
-    cols      = c(I1, I2),
+    cols      = c(IN, IS),
     names_to  = "variable",
     values_to = "value"
   ) |>
   mutate(
     variable = recode(
       variable,
-      I1 = "'Non-stressed infected'~(I[1])",
-      I2 = "'Stressed infected'~(I[2])"
+      IN = "'Non-stressed infected'~(I[N])",
+      IS = "'Stressed infected'~(I[S])"
     )
   )
 
@@ -153,5 +153,5 @@ print(p_I)
 
 # ---------------- 7) Save figure ----------------
 if (!dir.exists("fig")) dir.create("fig")
-ggsave("fig/ODE_I1_I2_alpha_t_min_gt1.pdf",
+ggsave("fig/ODE_IN_IS_alpha_t_min_gt1.pdf",
        p_I, width = 9, height = 4, dpi = 300)
