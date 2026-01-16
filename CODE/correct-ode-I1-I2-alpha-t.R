@@ -19,8 +19,8 @@ pars <- list(
   betaS  = 0.0001,
   gammaN = 0.10,
   gamma2 = 0.1,
-  dN     = 0.01,
-  dS     = 0.01,
+  dN     = 0.005,
+  dS     = 0.005,
   # water-stress link
   alpha_max = 0.05,  # max stress rate (day^-1)
   Wcrit     = 6,
